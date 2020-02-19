@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import ChatKit from '@pusher/chatkit-client'
-import { tokenUrl, instanceLocator } from './config'
+import SendMessageForm from './components/SendMessageForm'
 import MessageList from './components/MessageList'
+import { tokenUrl, instanceLocator } from './config'
 import './App.css';
 
 class App extends Component {
@@ -10,7 +11,7 @@ class App extends Component {
     super()
 
     this.state = {
-
+      messages: [],
     }
   }
 
@@ -27,12 +28,16 @@ class App extends Component {
 
     chatManager.connect()
       .then(currentUser => {
-        console.log("Current user:",currentUser)
-        currentUser.subscribeToRoom({
-          roomId: '969e43c8-3cdf-4672-9f84-6c3ef4cc48ad',
+        //console.log("Current user:", currentUser)
+        this.currentUser = currentUser
+        this.currentUser.subscribeToRoomMultipart({
+          roomId: currentUser.rooms[0].id,
           hooks: {
-            onNewMessage: message => {
-              console.log("Message Received:", message)
+            onMessage: message => {
+              //console.log("Message Received:", message.parts.map(msg => msg.payload.content))
+              this.setState({
+                messages: [...this.state.messages, message]
+              })
             }
           }
         })
@@ -40,10 +45,19 @@ class App extends Component {
       .catch(err => console.log("error:", err))
   }
 
+  sendMessage = (text) => {
+    this.currentUser.sendMessage({
+      text,
+      roomId: this.currentUser.rooms[0].id
+    })
+  }
+
   render() {
+    console.log(this.state.messages)
     return (
       <div className="App">
-       <MessageList />
+       <MessageList messages={this.state.messages} />
+       <SendMessageForm sendMessage={this.sendMessage}/>
       </div>
     );
   }
